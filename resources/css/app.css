@@ -1,0 +1,144 @@
+@import '@fontsource-variable/montserrat';
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+    --font-display: 'Montserrat Variable', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+    /* Brand: deep navy */
+    --color-navy: #082c50;
+    --color-navy-700: #0c3a68;
+    --color-navy-800: #072646;
+    --color-navy-900: #04182c;
+
+    /* Brand: construction orange */
+    --color-brand: #ff6412;
+    --color-brand-600: #e9540a;
+    --color-brand-700: #c94707;
+    --color-brand-50: #fff1ea;
+
+    /* Light background */
+    --color-mist: #f5f7fa;
+    --color-line: #e3e8ef;
+
+    --shadow-card: 0 10px 30px -12px rgb(8 44 80 / 0.25);
+    --shadow-lift: 0 22px 45px -18px rgb(8 44 80 / 0.4);
+
+    --animate-fade-up: fade-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    --animate-fade-in: fade-in 1s ease both;
+    --animate-kenburns: kenburns 22s ease-in-out infinite alternate;
+
+    @keyframes fade-up {
+        from { opacity: 0; transform: translateY(28px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes kenburns {
+        from { transform: scale(1); }
+        to { transform: scale(1.06); }
+    }
+}
+
+@layer base {
+    html { scroll-behavior: smooth; scroll-padding-top: 5.5rem; }
+    body { @apply bg-white font-sans text-slate-700 antialiased; }
+    /*
+     * Visitor- and admin-entered text (names, emails, file names, URLs) can contain very long
+     * unbroken strings. "anywhere" lets them wrap and also lowers min-content width, so flex/grid
+     * items shrink instead of pushing the page wider than the screen.
+     */
+    body { overflow-wrap: anywhere; }
+    /* Table cells scroll inside their own wrapper; don't squash their columns letter by letter. */
+    table { overflow-wrap: normal; }
+    h1, h2, h3, h4 { @apply font-display text-navy tracking-tight; }
+    [x-cloak] { display: none !important; }
+    :focus-visible { @apply outline-2 outline-offset-2 outline-brand; }
+    ::selection { background: var(--color-brand); color: #fff; }
+}
+
+/* Smooth cross-page transitions where the browser supports them */
+@view-transition { navigation: auto; }
+
+@layer components {
+    .container-x { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+    .section { @apply py-16 sm:py-20 lg:py-24; }
+
+    .eyebrow {
+        @apply inline-flex items-center gap-3 font-display text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-navy/70 sm:text-xs sm:tracking-[0.3em];
+    }
+    /* The accent line is dropped on the smallest screens so the label never wraps next to it. */
+    .eyebrow::after { content: ''; @apply h-0.5 w-10 shrink-0 bg-brand max-[480px]:hidden; }
+
+    /* Buttons */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition duration-300
+            focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-60;
+    }
+    .btn-primary { @apply bg-brand text-white shadow-lg shadow-brand/30 hover:-translate-y-0.5 hover:bg-brand-600 hover:shadow-xl hover:shadow-brand/40; }
+    .btn-navy { @apply bg-navy text-white hover:-translate-y-0.5 hover:bg-navy-700; }
+    .btn-outline { @apply border-2 border-navy/15 bg-white/60 text-navy backdrop-blur hover:border-brand hover:text-brand; }
+    .btn-ghost-light { @apply border border-white/40 bg-white/10 text-white backdrop-blur hover:bg-white hover:text-navy; }
+    .btn-sm { @apply px-4 py-2 text-xs; }
+    .btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+
+    /* Cards */
+    .card { @apply rounded-2xl bg-white shadow-card ring-1 ring-line; }
+    .glass { @apply bg-white/80 shadow-card ring-1 ring-white/60 backdrop-blur-xl; }
+
+    /* Forms (public + admin) */
+    .label { @apply mb-1.5 block text-sm font-semibold text-navy; }
+    .input {
+        @apply block w-full max-w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 shadow-sm transition
+            placeholder:text-slate-400 focus:border-brand focus:ring-4 focus:ring-brand/15 focus:outline-none;
+    }
+    .input[aria-invalid='true'], .input.is-invalid { @apply border-red-500 focus:ring-red-500/15; }
+    .field-error { @apply mt-1.5 text-sm text-red-600; }
+    .hint { @apply mt-1.5 text-xs text-slate-500; }
+
+    /* Prose for admin-managed long text */
+    .rich p { @apply mb-4 leading-relaxed; }
+    .rich p:last-child { @apply mb-0; }
+
+    /* Scroll reveal: only hides content when JS is present */
+    .js [data-reveal] {
+        opacity: 0;
+        transform: translateY(26px);
+        transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+        transition-delay: var(--reveal-delay, 0ms);
+    }
+    .js [data-reveal='left'] { transform: translateX(-30px); }
+    .js [data-reveal='right'] { transform: translateX(30px); }
+    .js [data-reveal='zoom'] { transform: scale(0.94); }
+    .js [data-reveal].is-visible { opacity: 1; transform: none; }
+
+    .img-zoom { @apply overflow-hidden; }
+    .img-zoom img { @apply transition duration-700 ease-out group-hover:scale-110; }
+
+    /* Admin chrome */
+    .admin-link {
+        @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white;
+    }
+    .admin-link.is-active { @apply bg-brand text-white shadow-lg shadow-brand/30; }
+    .badge { @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold; }
+    .th { @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500; }
+    .td { @apply px-4 py-3 text-sm; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .js [data-reveal] { opacity: 1; transform: none; }
+    .animate-kenburns { animation: none !important; }
+    @view-transition { navigation: none; }
+}
