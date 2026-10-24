@@ -20,6 +20,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google-site-verification" content="oJRZCJwTgFHG26tPNM2Rmtx2sAIDlygBjQ42O2EqcD0" />
     <title>{{ $pageTitle }}</title>
     <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($metaDescription), 160) }}">
     <link rel="canonical" href="{{ url()->current() }}">
