@@ -14,6 +14,8 @@
 /.zed
 /auth.json
 /node_modules
+# Generated database exports contain the admin account's password hash: keep them out of the repository.
+/database/sql/*.sql
 # NOTE: /public/build is committed on purpose. Shared cPanel hosting has no Node, so the
 # production assets (npm run build) travel with the repository. Rebuild before you commit CSS/JS changes.
 /public/fonts-manifest.dev.json
@@ -26,3 +28,4 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+*.zip

@@ -33,6 +33,22 @@ Source code, `vendor/` and `.env` stay outside the document root.
 The first deploy installs dependencies, runs migrations, seeds starter data once, publishes the site and builds caches.
 Then **delete `ADMIN_PASSWORD` from `.env`**, sign in at `https://your-domain.com/admin`, and change your password under your name (top right).
 
+### Prefer phpMyAdmin? Import the database instead of running migrations
+
+Two ready-made files are generated in `database/sql/` (they are git-ignored because they contain the admin account's password hash):
+
+| File | Contains |
+| --- | --- |
+| `rsquare_construction.sql` | **Use this for the live site.** All 24 tables, the six services, categories, highlights, statistic slots (hidden) and the admin account. No sample content. |
+| `rsquare_construction_demo.sql` | The same plus 6 clearly-marked *sample* projects and 8 gallery images. For demos and testing. |
+
+1. cPanel > *phpMyAdmin* > click your (empty) database in the left column > **Import**.
+2. *Choose file* > pick the `.sql` file > leave the defaults (format SQL, charset utf-8) > **Go**.
+3. Fill in `DB_*` in `.env`, deploy the code, and sign in with the admin account in the file.
+4. **Change the admin password immediately** (your name, top right > Profile). The file ships with the placeholder password you chose for development; never leave that on a live site.
+
+The import marks every migration as already run, so `php artisan migrate` (run on each deploy) only applies *future* migrations. Importing again drops and recreates the tables, erasing whatever is in them, so import only once into a new database.
+
 ## 2. Everyday workflow
 
 ```bash

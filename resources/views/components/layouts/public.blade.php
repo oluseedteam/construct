@@ -90,19 +90,6 @@
                 @endif
             </div>
 
-            {{-- Projects dropdown --}}
-            <div class="relative" x-data="{ dd: false }" @mouseenter="dd = true" @mouseleave="dd = false" @keydown.escape.window="dd = false">
-                <a href="{{ route('projects.index') }}" class="{{ $linkClass(request()->routeIs('projects.*') || request()->routeIs('gallery')) }} inline-flex items-center gap-1" @focus="dd = true" aria-haspopup="true" :aria-expanded="dd">
-                    Projects <x-icon name="chevron-down" class="size-3.5 transition" ::class="dd && 'rotate-180'" />
-                    {!! $underline(request()->routeIs('projects.*') || request()->routeIs('gallery')) !!}
-                </a>
-                <div x-show="dd" x-cloak x-transition.opacity.scale.origin.top.duration.200ms class="absolute left-0 top-full w-56 pt-3">
-                    <ul class="overflow-hidden rounded-2xl bg-white p-2 shadow-lift ring-1 ring-line">
-                        <li><a href="{{ route('projects.index') }}" class="block rounded-xl px-4 py-2.5 text-sm font-medium text-navy transition hover:bg-brand-50 hover:text-brand">Project Portfolio</a></li>
-                        <li><a href="{{ route('gallery') }}" class="block rounded-xl px-4 py-2.5 text-sm font-medium text-navy transition hover:bg-brand-50 hover:text-brand">Gallery</a></li>
-                    </ul>
-                </div>
-            </div>
 
             <a href="{{ route('why-us') }}" class="{{ $linkClass(request()->routeIs('why-us')) }}"><span class="xl:hidden">Why Us</span><span class="hidden xl:inline">Why Choose Us</span> {!! $underline(request()->routeIs('why-us')) !!}</a>
             <a href="{{ route('careers.index') }}" class="{{ $linkClass(request()->routeIs('careers.*')) }}">Careers {!! $underline(request()->routeIs('careers.*')) !!}</a>
@@ -122,7 +109,7 @@
     {{-- Mobile navigation --}}
     <div id="mobile-nav" x-show="open" x-cloak x-collapse class="border-t border-line bg-white lg:hidden">
         <nav class="container-x flex flex-col gap-1 py-4" aria-label="Mobile">
-            @foreach ([['Home', route('home')], ['About', route('about')], ['Services', route('services.index')], ['Projects', route('projects.index')], ['Gallery', route('gallery')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact', route('contact')]] as [$label, $url])
+            @foreach ([['Home', route('home')], ['About', route('about')], ['Services', route('services.index')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact', route('contact')]] as [$label, $url])
                 <a href="{{ $url }}" class="rounded-xl px-4 py-3 text-base font-semibold text-navy transition hover:bg-brand-50 hover:text-brand">{{ $label }}</a>
             @endforeach
             <a href="{{ route('quote') }}" class="btn btn-primary mt-2">Get a Quote <x-icon name="arrow-right" class="size-4" /></a>
@@ -153,7 +140,7 @@
         <div>
             <h2 class="font-display text-sm font-bold uppercase tracking-widest !text-white">Quick Links</h2>
             <ul class="mt-5 space-y-3 text-sm">
-                @foreach ([['Home', route('home')], ['About Us', route('about')], ['Projects', route('projects.index')], ['Gallery', route('gallery')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact Us', route('contact')], ['Request a Quote', route('quote')]] as [$label, $url])
+                @foreach ([['Home', route('home')], ['About Us', route('about')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact Us', route('contact')], ['Request a Quote', route('quote')]] as [$label, $url])
                     <li><a href="{{ $url }}" class="transition hover:text-brand">{{ $label }}</a></li>
                 @endforeach
             </ul>
