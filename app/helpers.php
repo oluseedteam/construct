@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\Pages;
 use App\Support\Site;
 use Illuminate\Support\Facades\Storage;
 
@@ -67,5 +68,52 @@ if (! function_exists('whatsapp_href')) {
         $digits = preg_replace('/\D/', '', (string) $number);
 
         return $digits ? 'https://wa.me/'.$digits : null;
+    }
+}
+
+if (! function_exists('page_published')) {
+    /** Whether a built-in page (home, about, services, projects, gallery, why-us, careers, contact, quote) is visible. */
+    function page_published(string $key): bool
+    {
+        return Pages::isPublished($key);
+    }
+}
+
+if (! function_exists('page_url')) {
+    /** URL of the first published page among the given keys (e.g. ['quote', 'contact']), or null if none is. */
+    function page_url(array $keys): ?string
+    {
+        return Pages::firstUrl($keys);
+    }
+}
+
+if (! function_exists('render_content')) {
+    /**
+     * Turn admin-entered plain text into safe HTML. Blocks are separated by blank lines;
+     * a block starting with "## " becomes a heading and a block of "- " lines becomes a list.
+     * Everything is escaped, so no raw HTML can be injected.
+     */
+    function render_content(?string $text): string
+    {
+        $html = '';
+
+        foreach (paragraphs($text) as $block) {
+            if (preg_match('/^#{1,3}\s+(.+)$/s', $block, $m) && ! str_contains($m[1], "\n")) {
+                $html .= '<h2>'.e($m[1]).'</h2>';
+
+                continue;
+            }
+
+            $lines = preg_split('/\R/', $block);
+            if (count($lines) && count(array_filter($lines, fn ($l) => preg_match('/^[-*]\s+/', $l))) === count($lines)) {
+                $html .= '<ul>'.implode('', array_map(fn ($l) => '<li>'.e(preg_replace('/^[-*]\s+/', '', $l)).'</li>', $lines)).'</ul>';
+
+                continue;
+            }
+
+            $html .= '<p>'.nl2br(e($block)).'</p>';
+        }
+
+        return $html;
     }
 }

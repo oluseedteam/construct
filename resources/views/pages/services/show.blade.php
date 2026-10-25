@@ -40,8 +40,8 @@
                 <div class="card p-7" data-reveal="right">
                     <h2 class="text-lg font-bold">{{ content('services.cta_title') }}</h2>
                     <p class="mt-2 text-sm text-slate-600">{{ content('services.cta_text') }}</p>
-                    <a href="{{ route('quote', ['type' => $service->name]) }}" class="btn btn-primary mt-5 w-full">Request a Quote <x-icon name="arrow-right" class="size-4" /></a>
-                    <a href="{{ route('contact') }}" class="btn btn-outline mt-3 w-full">Contact Us</a>
+                    @if (page_published('quote'))<a href="{{ route('quote', ['type' => $service->name]) }}" class="btn btn-primary mt-5 w-full">Request a Quote <x-icon name="arrow-right" class="size-4" /></a>@endif
+                    @if (page_published('contact'))<a href="{{ route('contact') }}" class="btn {{ page_published('quote') ? 'btn-outline mt-3' : 'btn-primary mt-5' }} w-full">Contact Us</a>@endif
                 </div>
                 @if ($others->isNotEmpty())
                     <div class="card p-7" data-reveal="right">

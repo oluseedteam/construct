@@ -25,11 +25,13 @@
                     @endif
                 </ul>
 
+                @if (page_published('quote'))
                 <div class="rounded-2xl bg-navy p-6 text-white">
                     <p class="font-display font-bold">Need a price?</p>
                     <p class="mt-1 text-sm text-white/75">Use our quotation form for project estimates.</p>
                     <a href="{{ route('quote') }}" class="btn btn-primary btn-sm mt-4">Request a Quote <x-icon name="arrow-right" class="size-4" /></a>
                 </div>
+                @endif
             </div>
 
             <div class="lg:col-span-3" data-reveal="right">

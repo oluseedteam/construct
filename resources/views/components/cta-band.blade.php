@@ -5,10 +5,12 @@
         <h2 id="cta-title" class="mx-auto max-w-3xl text-3xl font-extrabold !text-white sm:text-5xl">{{ content('home.cta_title') }}</h2>
         <p class="mx-auto mt-5 max-w-xl text-lg text-white/80">{{ content('home.cta_text') }}</p>
         <div class="mt-9 flex flex-wrap justify-center gap-4">
-            <a href="{{ route('quote') }}" class="btn btn-primary px-8 py-3.5">{{ content('home.cta_btn') }} <x-icon name="arrow-right" class="size-4" /></a>
+            @if ($ctaUrl = page_url(['quote', 'contact']))
+                <a href="{{ $ctaUrl }}" class="btn btn-primary px-8 py-3.5">{{ page_published('quote') ? content('home.cta_btn') : 'Contact Us' }} <x-icon name="arrow-right" class="size-4" /></a>
+            @endif
             @if (setting('phone'))
                 <a href="{{ tel_href(setting('phone')) }}" class="btn btn-ghost-light px-8 py-3.5"><x-icon name="phone" class="size-4" /> {{ setting('phone') }}</a>
-            @else
+            @elseif (page_published('contact') && page_published('quote'))
                 <a href="{{ route('contact') }}" class="btn btn-ghost-light px-8 py-3.5">Contact Us</a>
             @endif
         </div>

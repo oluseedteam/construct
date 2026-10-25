@@ -16,26 +16,36 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::get('/', [PageController::class, 'home'])->name('home');
-Route::get('/about', [PageController::class, 'about'])->name('about');
-Route::get('/why-choose-us', [PageController::class, 'whyUs'])->name('why-us');
-Route::get('/gallery', [PageController::class, 'gallery'])->name('gallery');
+Route::get('/about', [PageController::class, 'about'])->middleware('page:about')->name('about');
+Route::get('/why-choose-us', [PageController::class, 'whyUs'])->middleware('page:why-us')->name('why-us');
+Route::get('/gallery', [PageController::class, 'gallery'])->middleware('page:gallery')->name('gallery');
 
-Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
-Route::get('/services/{service:slug}', [ServiceController::class, 'show'])->name('services.show');
+Route::middleware('page:services')->group(function () {
+    Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+    Route::get('/services/{service:slug}', [ServiceController::class, 'show'])->name('services.show');
+});
 
-Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
-Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
+Route::middleware('page:projects')->group(function () {
+    Route::get('/projects', [ProjectController::class, 'index'])->name('projects.index');
+    Route::get('/projects/{project:slug}', [ProjectController::class, 'show'])->name('projects.show');
+});
 
-Route::get('/careers', [CareerController::class, 'index'])->name('careers.index');
-Route::get('/careers/apply', [CareerController::class, 'apply'])->name('careers.apply');
-Route::post('/careers/apply', [CareerController::class, 'store'])->middleware('throttle:forms')->name('careers.store');
-Route::get('/careers/{job:slug}', [CareerController::class, 'show'])->name('careers.show');
+Route::middleware('page:careers')->group(function () {
+    Route::get('/careers', [CareerController::class, 'index'])->name('careers.index');
+    Route::get('/careers/apply', [CareerController::class, 'apply'])->name('careers.apply');
+    Route::post('/careers/apply', [CareerController::class, 'store'])->middleware('throttle:forms')->name('careers.store');
+    Route::get('/careers/{job:slug}', [CareerController::class, 'show'])->name('careers.show');
+});
 
-Route::get('/contact', [ContactController::class, 'show'])->name('contact');
-Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:forms')->name('contact.store');
+Route::middleware('page:contact')->group(function () {
+    Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+    Route::post('/contact', [ContactController::class, 'store'])->middleware('throttle:forms')->name('contact.store');
+});
 
-Route::get('/request-a-quote', [QuoteController::class, 'show'])->name('quote');
-Route::post('/request-a-quote', [QuoteController::class, 'store'])->middleware('throttle:forms')->name('quote.store');
+Route::middleware('page:quote')->group(function () {
+    Route::get('/request-a-quote', [QuoteController::class, 'show'])->name('quote');
+    Route::post('/request-a-quote', [QuoteController::class, 'store'])->middleware('throttle:forms')->name('quote.store');
+});
 
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SeoController::class, 'robots'])->name('robots');
@@ -89,6 +99,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::resource('highlights', Admin\HighlightController::class)->except('show');
 
+        Route::resource('pages', Admin\PageController::class)->except('show');
+        Route::patch('pages/{page}/toggle', [Admin\PageController::class, 'toggle'])->name('pages.toggle');
+
         Route::resource('users', Admin\UserController::class)->except('show');
         Route::get('profile', [Admin\ProfileController::class, 'edit'])->name('profile.edit');
         Route::put('profile', [Admin\ProfileController::class, 'update'])->name('profile.update');
@@ -104,3 +117,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
     });
 });
+
+/*
+|--------------------------------------------------------------------------
+| Custom pages created in Admin > Pages (must stay last: /{slug})
+|--------------------------------------------------------------------------
+*/
+// any() so that POSTing to an unknown URL is a plain 404 rather than a 405 that reveals the catch-all.
+Route::any('/{slug}', [PageController::class, 'show'])->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')->name('pages.show');

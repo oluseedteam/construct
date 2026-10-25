@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsurePagePublished;
 use App\Http\Middleware\EnsureStaff;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
@@ -14,7 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias(['staff' => EnsureStaff::class]);
+        $middleware->alias(['staff' => EnsureStaff::class, 'page' => EnsurePagePublished::class]);
         $middleware->appendToGroup('web', SecurityHeaders::class);
 
         $middleware->redirectGuestsTo(fn () => route('admin.login'));

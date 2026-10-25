@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\CompanyStat;
 use App\Models\Highlight;
+use App\Models\Page;
 use App\Models\ProjectCategory;
 use App\Models\Service;
 use App\Models\User;
@@ -22,8 +23,15 @@ class DatabaseSeeder extends Seeder
         $this->categories();
         $this->services();
         $this->highlights();
+        $this->pages();
         $this->stats();
         $this->admin();
+    }
+
+    /** Registers every built-in page so admins can reorder, rename or hide it (Admin > Pages). */
+    private function pages(): void
+    {
+        Page::ensureBuiltins();
     }
 
     private function categories(): void

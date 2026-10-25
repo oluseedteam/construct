@@ -23,8 +23,14 @@
                 </h1>
                 <p class="mt-6 max-w-xl text-lg leading-relaxed text-slate-700 animate-fade-up [animation-delay:340ms]">{{ content('home.hero_text') }}</p>
                 <div class="mt-9 flex flex-wrap items-center gap-4 animate-fade-up [animation-delay:460ms]">
-                    <a href="{{ route('quote') }}" class="btn btn-primary px-7 py-3.5">{{ content('home.hero_btn_primary') }} <x-icon name="arrow-right" class="size-4" /></a>
-                    <a href="{{ route('projects.index') }}" class="btn btn-outline px-7 py-3.5">{{ content('home.hero_btn_secondary') }}</a>
+                    @if ($ctaUrl = page_url(['quote', 'contact']))
+                        <a href="{{ $ctaUrl }}" class="btn btn-primary px-7 py-3.5">{{ page_published('quote') ? content('home.hero_btn_primary') : 'Contact Us' }} <x-icon name="arrow-right" class="size-4" /></a>
+                    @endif
+                    @if (page_published('projects'))
+                        <a href="{{ route('projects.index') }}" class="btn btn-outline px-7 py-3.5">{{ content('home.hero_btn_secondary') }}</a>
+                    @elseif ($altUrl = page_url(['services', 'about']))
+                        <a href="{{ $altUrl }}" class="btn btn-outline px-7 py-3.5">{{ page_published('services') ? 'Explore Our Services' : 'About Us' }}</a>
+                    @endif
                 </div>
             </div>
         </div>
@@ -36,8 +42,9 @@
             <h2 id="services-title" class="sr-only">Our Services</h2>
             <div class="container-x">
                 <div class="flex flex-wrap justify-center gap-4">
+                    @php $servicesLive = page_published('services'); @endphp
                     @foreach ($services as $i => $service)
-                        <a href="{{ route('services.show', $service) }}" data-reveal style="--reveal-delay: {{ ($i % 3) * 90 }}ms"
+                        <{{ $servicesLive ? 'a' : 'div' }} @if ($servicesLive) href="{{ route('services.show', $service) }}" @endif data-reveal style="--reveal-delay: {{ ($i % 3) * 90 }}ms"
                            class="group glass flex w-full items-center gap-4 rounded-2xl p-5 transition duration-500 hover:-translate-y-1.5 hover:bg-navy hover:shadow-lift sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.7rem)]">
                             <span class="inline-flex size-14 shrink-0 items-center justify-center rounded-2xl bg-navy text-brand transition group-hover:bg-brand group-hover:text-white">
                                 <x-icon :name="$service->icon" class="size-7" />
@@ -46,8 +53,8 @@
                                 <span class="block font-display text-base font-bold leading-snug text-navy transition group-hover:text-white">{{ $service->name }}</span>
                                 <span class="mt-1 block text-sm leading-snug text-slate-600 transition group-hover:text-white/75">{{ $service->description }}</span>
                             </span>
-                            <x-icon name="arrow-right" class="size-5 shrink-0 text-navy/40 transition group-hover:translate-x-1 group-hover:text-brand" />
-                        </a>
+                            @if ($servicesLive)<x-icon name="arrow-right" class="size-5 shrink-0 text-navy/40 transition group-hover:translate-x-1 group-hover:text-brand" />@endif
+                        </{{ $servicesLive ? 'a' : 'div' }}>
                     @endforeach
                 </div>
             </div>
@@ -108,7 +115,7 @@
     </section>
 
     {{-- ============ Featured Projects ============ --}}
-    @if ($projects->isNotEmpty())
+    @if ($projects->isNotEmpty() && page_published('projects'))
         <section class="section bg-mist" aria-labelledby="projects-title">
             <div class="container-x">
                 <div class="mb-10 flex flex-wrap items-end justify-between gap-6 sm:mb-14">

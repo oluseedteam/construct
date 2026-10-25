@@ -71,34 +71,75 @@
                 $linkClass = fn ($active) => 'relative rounded-lg px-4 py-2 text-sm font-semibold transition hover:text-brand '.($active ? 'text-brand' : 'text-navy');
                 $underline = fn ($active) => $active ? '<span class="absolute inset-x-4 -bottom-0.5 h-0.5 rounded bg-brand"></span>' : '';
             @endphp
-            <a href="{{ route('home') }}" class="{{ $linkClass(request()->routeIs('home')) }}">Home {!! $underline(request()->routeIs('home')) !!}</a>
-            <a href="{{ route('about') }}" class="{{ $linkClass(request()->routeIs('about')) }}">About {!! $underline(request()->routeIs('about')) !!}</a>
-
-            {{-- Services dropdown --}}
-            <div class="relative" x-data="{ dd: false }" @mouseenter="dd = true" @mouseleave="dd = false" @keydown.escape.window="dd = false">
-                <a href="{{ route('services.index') }}" class="{{ $linkClass(request()->routeIs('services.*')) }} inline-flex items-center gap-1" @focus="dd = true" aria-haspopup="true" :aria-expanded="dd">
-                    Services <x-icon name="chevron-down" class="size-3.5 transition" ::class="dd && 'rotate-180'" />
-                    {!! $underline(request()->routeIs('services.*')) !!}
-                </a>
-                @if (count($navServices))
-                    <div x-show="dd" x-cloak x-transition.opacity.scale.origin.top.duration.200ms class="absolute left-0 top-full w-72 pt-3">
-                        <ul class="overflow-hidden rounded-2xl bg-white p-2 shadow-lift ring-1 ring-line">
-                            @foreach ($navServices as $svc)
-                                <li><a href="{{ route('services.show', $svc['slug']) }}" class="block rounded-xl px-4 py-2.5 text-sm font-medium text-navy transition hover:bg-brand-50 hover:text-brand">{{ $svc['name'] }}</a></li>
-                            @endforeach
-                        </ul>
+            @php
+                // Navigation is built from Admin > Pages: only published pages marked "show in menu".
+                $navPages = \App\Support\Pages::nav();
+                $navHas = fn ($key) => $navPages->contains('key', $key);
+                $activeFor = function (array $row) {
+                    return match ($row['key']) {
+                        'home' => request()->routeIs('home'),
+                        'about' => request()->routeIs('about'),
+                        'services' => request()->routeIs('services.*'),
+                        'projects' => request()->routeIs('projects.*') || request()->routeIs('gallery'),
+                        'gallery' => request()->routeIs('gallery'),
+                        'why-us' => request()->routeIs('why-us'),
+                        'careers' => request()->routeIs('careers.*'),
+                        'contact' => request()->routeIs('contact'),
+                        'quote' => request()->routeIs('quote'),
+                        default => request()->routeIs('pages.show') && request()->route('slug') === $row['slug'],
+                    };
+                };
+                $dropdownItem = 'block rounded-xl px-4 py-2.5 text-sm font-medium text-navy transition hover:bg-brand-50 hover:text-brand';
+            @endphp
+            @foreach ($navPages as $row)
+                @php $active = $activeFor($row); @endphp
+                @if ($row['key'] === 'services')
+                    {{-- Services dropdown --}}
+                    <div class="relative" x-data="{ dd: false }" @mouseenter="dd = true" @mouseleave="dd = false" @keydown.escape.window="dd = false">
+                        <a href="{{ $row['url'] }}" class="{{ $linkClass($active) }} inline-flex items-center gap-1" @focus="dd = true" aria-haspopup="true" :aria-expanded="dd">
+                            {{ $row['nav_label'] }} <x-icon name="chevron-down" class="size-3.5 transition" ::class="dd && 'rotate-180'" />
+                            {!! $underline($active) !!}
+                        </a>
+                        @if (count($navServices))
+                            <div x-show="dd" x-cloak x-transition.opacity.scale.origin.top.duration.200ms class="absolute left-0 top-full w-72 pt-3">
+                                <ul class="overflow-hidden rounded-2xl bg-white p-2 shadow-lift ring-1 ring-line">
+                                    @foreach ($navServices as $svc)
+                                        <li><a href="{{ route('services.show', $svc['slug']) }}" class="{{ $dropdownItem }}">{{ $svc['name'] }}</a></li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
+                @elseif ($row['key'] === 'projects')
+                    {{-- Projects dropdown (Gallery nests under it while both are published) --}}
+                    <div class="relative" x-data="{ dd: false }" @mouseenter="dd = true" @mouseleave="dd = false" @keydown.escape.window="dd = false">
+                        <a href="{{ $row['url'] }}" class="{{ $linkClass($active) }} inline-flex items-center gap-1" @focus="dd = true" aria-haspopup="true" :aria-expanded="dd">
+                            {{ $row['nav_label'] }} <x-icon name="chevron-down" class="size-3.5 transition" ::class="dd && 'rotate-180'" />
+                            {!! $underline($active) !!}
+                        </a>
+                        <div x-show="dd" x-cloak x-transition.opacity.scale.origin.top.duration.200ms class="absolute left-0 top-full w-56 pt-3">
+                            <ul class="overflow-hidden rounded-2xl bg-white p-2 shadow-lift ring-1 ring-line">
+                                <li><a href="{{ $row['url'] }}" class="{{ $dropdownItem }}">Project Portfolio</a></li>
+                                @if ($navHas('gallery'))
+                                    <li><a href="{{ $navPages->firstWhere('key', 'gallery')['url'] }}" class="{{ $dropdownItem }}">{{ $navPages->firstWhere('key', 'gallery')['nav_label'] }}</a></li>
+                                @endif
+                            </ul>
+                        </div>
+                    </div>
+                @elseif ($row['key'] === 'gallery' && $navHas('projects'))
+                    {{-- shown inside the Projects dropdown --}}
+                @elseif ($row['key'] === 'why-us')
+                    <a href="{{ $row['url'] }}" class="{{ $linkClass($active) }}"><span class="xl:hidden">Why Us</span><span class="hidden xl:inline">{{ $row['nav_label'] }}</span> {!! $underline($active) !!}</a>
+                @else
+                    <a href="{{ $row['url'] }}" class="{{ $linkClass($active) }}">{{ $row['nav_label'] }} {!! $underline($active) !!}</a>
                 @endif
-            </div>
-
-
-            <a href="{{ route('why-us') }}" class="{{ $linkClass(request()->routeIs('why-us')) }}"><span class="xl:hidden">Why Us</span><span class="hidden xl:inline">Why Choose Us</span> {!! $underline(request()->routeIs('why-us')) !!}</a>
-            <a href="{{ route('careers.index') }}" class="{{ $linkClass(request()->routeIs('careers.*')) }}">Careers {!! $underline(request()->routeIs('careers.*')) !!}</a>
-            <a href="{{ route('contact') }}" class="{{ $linkClass(request()->routeIs('contact')) }}">Contact {!! $underline(request()->routeIs('contact')) !!}</a>
+            @endforeach
         </nav>
 
         <div class="flex items-center gap-3">
-            <a href="{{ route('quote') }}" class="btn btn-primary hidden sm:inline-flex">Get a Quote <x-icon name="arrow-right" class="size-4" /></a>
+            @if ($ctaUrl = page_url(['quote', 'contact']))
+                <a href="{{ $ctaUrl }}" class="btn btn-primary hidden sm:inline-flex">{{ page_published('quote') ? 'Get a Quote' : 'Contact Us' }} <x-icon name="arrow-right" class="size-4" /></a>
+            @endif
             <button type="button" class="inline-flex size-11 items-center justify-center rounded-xl text-navy transition hover:bg-navy/5 lg:hidden"
                     @click="open = !open" :aria-expanded="open" aria-controls="mobile-nav" aria-label="Toggle menu">
                 <span x-show="!open"><x-icon name="menu" class="size-6" /></span>
@@ -110,10 +151,12 @@
     {{-- Mobile navigation --}}
     <div id="mobile-nav" x-show="open" x-cloak x-collapse class="border-t border-line bg-white lg:hidden">
         <nav class="container-x flex flex-col gap-1 py-4" aria-label="Mobile">
-            @foreach ([['Home', route('home')], ['About', route('about')], ['Services', route('services.index')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact', route('contact')]] as [$label, $url])
-                <a href="{{ $url }}" class="rounded-xl px-4 py-3 text-base font-semibold text-navy transition hover:bg-brand-50 hover:text-brand">{{ $label }}</a>
+            @foreach (\App\Support\Pages::nav() as $row)
+                <a href="{{ $row['url'] }}" class="rounded-xl px-4 py-3 text-base font-semibold text-navy transition hover:bg-brand-50 hover:text-brand">{{ $row['nav_label'] }}</a>
             @endforeach
-            <a href="{{ route('quote') }}" class="btn btn-primary mt-2">Get a Quote <x-icon name="arrow-right" class="size-4" /></a>
+            @if ($ctaUrl = page_url(['quote', 'contact']))
+                <a href="{{ $ctaUrl }}" class="btn btn-primary mt-2">{{ page_published('quote') ? 'Get a Quote' : 'Contact Us' }} <x-icon name="arrow-right" class="size-4" /></a>
+            @endif
         </nav>
     </div>
 </header>
@@ -141,12 +184,13 @@
         <div>
             <h2 class="font-display text-sm font-bold uppercase tracking-widest !text-white">Quick Links</h2>
             <ul class="mt-5 space-y-3 text-sm">
-                @foreach ([['Home', route('home')], ['About Us', route('about')], ['Why Choose Us', route('why-us')], ['Careers', route('careers.index')], ['Contact Us', route('contact')], ['Request a Quote', route('quote')]] as [$label, $url])
-                    <li><a href="{{ $url }}" class="transition hover:text-brand">{{ $label }}</a></li>
+                @foreach (\App\Support\Pages::footer() as $row)
+                    <li><a href="{{ $row['url'] }}" class="transition hover:text-brand">{{ $row['title'] }}</a></li>
                 @endforeach
             </ul>
         </div>
 
+        @if (page_published('services'))
         <div>
             <h2 class="font-display text-sm font-bold uppercase tracking-widest !text-white">Services</h2>
             <ul class="mt-5 space-y-3 text-sm">
@@ -157,6 +201,7 @@
                 @endforelse
             </ul>
         </div>
+        @endif
 
         <div>
             <h2 class="font-display text-sm font-bold uppercase tracking-widest !text-white">Contact</h2>
@@ -170,7 +215,7 @@
                 @if (setting('email'))
                     <li class="flex gap-3"><x-icon name="mail" class="mt-0.5 size-5 shrink-0 text-brand" /><a href="mailto:{{ setting('email') }}" class="break-all hover:text-brand">{{ setting('email') }}</a></li>
                 @endif
-                @if (! setting('address') && ! setting('phone') && ! setting('email'))
+                @if (! setting('address') && ! setting('phone') && ! setting('email') && page_published('contact'))
                     <li><a href="{{ route('contact') }}" class="hover:text-brand">Send us a message</a></li>
                 @endif
             </ul>

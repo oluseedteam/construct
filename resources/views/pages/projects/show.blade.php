@@ -41,7 +41,7 @@
                 <div class="card bg-navy p-7 !ring-0" data-reveal="right">
                     <h2 class="text-lg font-bold !text-white">{{ content('projects.cta_title') }}</h2>
                     <p class="mt-2 text-sm text-white/75">{{ content('projects.cta_text') }}</p>
-                    <a href="{{ route('quote', ['type' => $project->category?->name]) }}" class="btn btn-primary mt-5 w-full">Request a Quote <x-icon name="arrow-right" class="size-4" /></a>
+                    @if ($ctaUrl = page_url(['quote', 'contact']))<a href="{{ page_published('quote') ? route('quote', ['type' => $project->category?->name]) : $ctaUrl }}" class="btn btn-primary mt-5 w-full">{{ page_published('quote') ? 'Request a Quote' : 'Contact Us' }} <x-icon name="arrow-right" class="size-4" /></a>@endif
                 </div>
             </aside>
         </div>

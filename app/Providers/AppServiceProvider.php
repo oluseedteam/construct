@@ -7,6 +7,7 @@ use App\Models\GalleryImage;
 use App\Models\Highlight;
 use App\Models\JobApplication;
 use App\Models\JobOpening;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\QuoteRequest;
 use App\Models\Service;
@@ -35,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // One policy covers every admin-managed model: staff can create/edit, only admins can delete.
-        foreach ([Project::class, Service::class, GalleryImage::class, Testimonial::class, QuoteRequest::class, ContactMessage::class, JobOpening::class, JobApplication::class, Highlight::class] as $model) {
+        foreach ([Project::class, Service::class, GalleryImage::class, Testimonial::class, QuoteRequest::class, ContactMessage::class, JobOpening::class, JobApplication::class, Highlight::class, Page::class] as $model) {
             Gate::policy($model, ContentPolicy::class);
         }
 

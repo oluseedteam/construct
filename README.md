@@ -12,6 +12,7 @@ Company website and admin dashboard for **R Square Construction** (Ontario, Cana
 **Admin dashboard (`/admin`)**
 - Inbox: quote requests (status, notes, reply by email), contact messages, job applications (resume download).
 - Content: projects (multi-image), services, gallery, job openings, testimonials (approval required), highlights, statistics.
+- **Pages:** publish/unpublish any page (hidden pages leave the menu, footer and sitemap and return 404), reorder and relabel the menu, and add custom pages.
 - **Website Content:** every heading, paragraph, button label and main image on the site is editable, tab by tab.
 - Settings: company details, logo, favicon, social links, SEO. Staff accounts with `admin` / `editor` roles.
 

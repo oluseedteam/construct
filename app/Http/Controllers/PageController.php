@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CompanyStat;
 use App\Models\Highlight;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Testimonial;
@@ -49,5 +50,15 @@ class PageController extends Controller
     public function gallery(): View
     {
         return view('pages.gallery');
+    }
+
+    /** A custom page created in Admin > Pages. Unpublished pages are not found. */
+    public function show(string $slug): View
+    {
+        abort_unless(request()->isMethod('GET') || request()->isMethod('HEAD'), 404);
+
+        $page = Page::custom()->published()->where('slug', $slug)->firstOrFail();
+
+        return view('pages.custom', compact('page'));
     }
 }
