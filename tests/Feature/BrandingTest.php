@@ -97,6 +97,38 @@ class BrandingTest extends TestCase
         $this->get('/admin')->assertDontSee('images/logo-mark-light.png', false);
     }
 
+    public function test_google_site_verification_tag_is_on_the_public_site(): void
+    {
+        $tag = '<meta name="google-site-verification" content="oJRZCJwTgFHG26tPNM2Rmtx2sAIDlygBjQ42O2EqcD0" />';
+
+        $this->get('/')->assertOk()->assertSee($tag, false);
+        $this->get('/about')->assertSee($tag, false);
+    }
+
+    public function test_logo_mark_uses_brand_orange_not_gold(): void
+    {
+        $im = imagecreatefrompng(public_path('images/logo-mark.png'));
+        $orange = 0;
+        $gold = 0;
+        for ($y = 0; $y < imagesy($im); $y += 2) {
+            for ($x = 0; $x < imagesx($im); $x += 2) {
+                $c = imagecolorat($im, $x, $y);
+                if ((($c >> 24) & 0x7F) > 100) {
+                    continue;
+                }
+                [$r, $g, $b] = [($c >> 16) & 255, ($c >> 8) & 255, $c & 255];
+                if ($r > 200 && $g >= 70 && $g <= 130 && $b < 60) {
+                    $orange++;
+                } elseif ($r > 180 && $g > 140 && $b < 90) {
+                    $gold++;
+                }
+            }
+        }
+
+        $this->assertGreaterThan(500, $orange, 'expected a large orange area (the roof)');
+        $this->assertLessThan($orange / 20, $gold, 'gold pixels should be gone');
+    }
+
     public function test_viewport_meta_and_responsive_basics_are_present_on_every_layout(): void
     {
         $viewport = '<meta name="viewport" content="width=device-width, initial-scale=1">';
