@@ -1,111 +1,116 @@
-# Deploying R Square Construction to cPanel with Git
+# Deploying R Square Construction to cPanel with Git (no terminal needed)
 
-The repository checkout on the server **is** the application. On every deploy, `.cpanel.yml` runs
-[`deploy/cpanel-deploy.sh`](deploy/cpanel-deploy.sh), which publishes only `public/` into `public_html`.
-Source code, `vendor/` and `.env` stay outside the document root.
+Everything on the server happens through the cPanel web interface. You never need SSH or the Terminal feature:
+**Git Version Control** pulls the code and runs [`deploy/cpanel-deploy.sh`](deploy/cpanel-deploy.sh) (via `.cpanel.yml`)
+when you click **Deploy HEAD Commit**. That script installs Composer dependencies (downloading Composer itself if the
+host doesn't have it), publishes the site, runs database migrations, seeds the starter data once and rebuilds caches.
 
 ```
 /home/cpaneluser/
-├── repositories/rsquare/   ← git checkout = the Laravel app (app, vendor, storage, .env …)
-└── public_html/            ← document root: index.php, .htaccess, build/, images/, storage/ (generated on deploy)
+├── repositories/rsquare/   ← git checkout = the Laravel app (app, vendor, storage, .env …)  NOT web-accessible
+├── public_html/            ← document root: index.php, .htaccess, build/, images/, storage/  (generated on deploy)
+└── rsquare-deploy.log      ← what the last deploys did (open in File Manager if something goes wrong)
 ```
 
-## 1. One-time server setup
+## 1. One-time setup (about 15 minutes, all in cPanel)
 
-1. **PHP version:** cPanel > *MultiPHP Manager* > select **PHP 8.3 or newer** for the domain.
-   Make sure these extensions are on: `pdo_mysql, mbstring, openssl, fileinfo, gd, curl, xml, zip, tokenizer, ctype`.
-2. **Database:** cPanel > *MySQL Databases*: create a database and a user, add the user to the database with *All Privileges*.
-3. **Clone the repository:** cPanel > *Git Version Control* > *Create*. Paste the clone URL (for a private repo, add the
-   cPanel SSH public key as a *deploy key* on GitHub/GitLab) and keep the default path, e.g. `repositories/rsquare`.
-4. **Create `.env`** inside that folder (File Manager > `repositories/rsquare` > copy `.env.example` to `.env`) and fill in:
-   - `APP_URL=https://your-domain.com`, `APP_DEBUG=false`
-   - `APP_KEY`: generate locally with `php artisan key:generate --show` and paste the `base64:...` value
-   - `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` (cPanel prefixes both with your account name)
-   - `MAIL_*` (cPanel > *Email Accounts* > *Connect Devices* shows the SMTP values)
-   - `ADMIN_EMAIL` and a **strong** `ADMIN_PASSWORD` (12+ characters). Used once, on the first deploy, to create the first admin.
-5. *(Only if your site is an add-on domain or sub-domain)* create `~/.rsquare-deploy.env` with the document root:
-   ```
-   PUBLIC_PATH=/home/cpaneluser/your-domain.com
-   ```
-   You can also pin the PHP/Composer binaries here (`PHP_BIN=`, `COMPOSER_BIN=`) if auto-detection picks the wrong ones.
-6. *Git Version Control* > **Manage** > *Deploy* tab > **Deploy HEAD Commit**.
+1. **PHP version** — cPanel > *MultiPHP Manager* (or *Select PHP Version*): choose **PHP 8.3 or newer** for your domain.
+   Under PHP extensions make sure these are ticked: `pdo_mysql, mbstring, openssl, fileinfo, gd, curl, xml, zip, tokenizer, ctype`.
+2. **Database** — cPanel > *MySQL Databases*: create a database, create a user, then *Add User To Database* with **All Privileges**.
+   Note the full names (cPanel prefixes them, e.g. `cpaneluser_rsquare`).
+3. **Clone the repository** — cPanel > *Git Version Control* > *Create*:
+   - Clone URL: `https://github.com/oluseedteam/construct.git`
+   - Repository Path: `repositories/rsquare` (the default is fine)
+   - Leave *Clone a Repository* on, click *Create*.
+4. **Create `.env`** — cPanel > *File Manager* > open `repositories/rsquare`:
+   - Right-click `.env.example` > *Copy* > name it `.env` (turn on *Show Hidden Files* in File Manager settings to see it).
+   - Right-click `.env` > *Edit* and fill in:
+     ```
+     APP_URL=https://your-domain.com
+     APP_DEBUG=false
+     APP_KEY=base64:...        ← generate on your PC: php artisan key:generate --show
+     DB_DATABASE=cpaneluser_rsquare
+     DB_USERNAME=cpaneluser_rsquare
+     DB_PASSWORD=...
+     MAIL_HOST / MAIL_USERNAME / MAIL_PASSWORD   ← cPanel > Email Accounts > Connect Devices
+     ADMIN_EMAIL=you@your-domain.com
+     ADMIN_PASSWORD=a-strong-password-12+     ← used once to create the first admin
+     ```
+   - *(Only for an add-on domain or sub-domain)* also create `/home/cpaneluser/.rsquare-deploy.env` containing
+     `PUBLIC_PATH=/home/cpaneluser/your-domain.com` (the domain's document root).
+5. **Deploy** — cPanel > *Git Version Control* > *Manage* (next to the repo) > *Pull or Deploy* tab > **Deploy HEAD Commit**.
+   The first deploy takes a few minutes (Composer downloads the dependencies).
+6. Open `https://your-domain.com`. Then sign in at `/admin`, change your password (your name, top right > Profile) and
+   delete the `ADMIN_PASSWORD` line from `.env`.
 
-The first deploy installs dependencies, runs migrations, seeds starter data once, publishes the site and builds caches.
-Then **delete `ADMIN_PASSWORD` from `.env`**, sign in at `https://your-domain.com/admin`, and change your password under your name (top right).
-
-### Prefer phpMyAdmin? Import the database instead of running migrations
-
-Two ready-made files are generated in `database/sql/` (they are git-ignored because they contain the admin account's password hash):
-
-| File | Contains |
-| --- | --- |
-| `rsquare_construction.sql` | **Use this for the live site.** All 24 tables, the six services, categories, highlights, statistic slots (hidden) and the admin account. No sample content. |
-| `rsquare_construction_demo.sql` | The same plus 6 clearly-marked *sample* projects and 8 gallery images. For demos and testing. |
-
-1. cPanel > *phpMyAdmin* > click your (empty) database in the left column > **Import**.
-2. *Choose file* > pick the `.sql` file > leave the defaults (format SQL, charset utf-8) > **Go**.
-3. Fill in `DB_*` in `.env`, deploy the code, and sign in with the admin account in the file.
-4. **Change the admin password immediately** (your name, top right > Profile). The file ships with the placeholder password you chose for development; never leave that on a live site.
-
-The import marks every migration as already run, so `php artisan migrate` (run on each deploy) only applies *future* migrations. Importing again drops and recreates the tables, erasing whatever is in them, so import only once into a new database.
-
-## 2. Everyday workflow
+## 2. Publishing changes afterwards
 
 ```bash
-# locally
-npm run build                 # only if you changed CSS/JS/Blade classes: public/build is committed
+# on your PC
+npm run build                 # only if CSS/JS or Tailwind classes changed (public/build is committed on purpose)
 git add -A && git commit -m "Describe the change" && git push
-
-# cPanel > Git Version Control > Manage
-#   Pull or Deploy tab > "Update from Remote", then "Deploy HEAD Commit"
 ```
 
-`public/build` is committed on purpose: shared hosting has no Node. Rebuild before committing CSS/JS changes.
+Then in cPanel > *Git Version Control* > *Manage* > *Pull or Deploy* tab:
+1. **Update from Remote** (pulls the new commit from GitHub)
+2. **Deploy HEAD Commit** (publishes it: dependencies, files, migrations, caches)
 
-## 3. What a deploy does
+That's it. Uploads, `.env` and the database are never touched by a deploy.
 
-1. Finds PHP 8.3+ and checks `.env` and `APP_KEY` exist (it never creates or edits `.env`).
-2. `composer install --no-dev --optimize-autoloader`.
-3. Ensures `storage/` and `bootstrap/cache/` exist and are writable.
-4. Replaces `public_html/build` and copies the rest of `public/`; generates `public_html/index.php` pointing at the checkout.
-   Existing files in `public_html` (e.g. `cgi-bin`, `.well-known`) and your uploads are left alone.
-5. Links `public_html/storage` to `storage/app/public` for uploaded images (or uses `PUBLIC_DISK_ROOT` if you set it in `.env`).
-6. `php artisan migrate --force`.
-7. **First deploy only:** `php artisan db:seed --force` (categories, the six services, highlights, hidden statistic slots, first admin from `.env`).
-   A marker file `storage/app/.seeded` stops it running again, so content you delete is never resurrected.
-8. `optimize:clear`, then `config:cache`, `route:cache`, `view:cache`.
+## 3. What a deploy does (deploy/cpanel-deploy.sh)
 
-It is safe to run repeatedly. Do **not** run `DemoSeeder` in production (clearly-marked *sample* projects and gallery images).
+1. Logs everything to `~/rsquare-deploy.log`.
+2. Finds PHP 8.3+ (cPanel's `/opt/cpanel/ea-php8x` builds) and checks `.env` and `APP_KEY` exist.
+3. Finds Composer, or **downloads it** to `~/bin/composer.phar` (verifying the official checksum), then `composer install --no-dev`.
+4. Creates the `storage/` folders and makes them writable.
+5. Replaces `public_html/build`, copies the rest of `public/`, generates `public_html/index.php` pointing at the checkout.
+   Other files in `public_html` (e.g. `cgi-bin`, `.well-known`) and uploaded images are left alone.
+6. Links `public_html/storage` to `storage/app/public` for uploads (or uses `PUBLIC_DISK_ROOT` from `.env`).
+7. `php artisan migrate --force`.
+8. **First deploy only**: `php artisan db:seed --force` (categories, services, highlights, pages, hidden statistic slots,
+   first admin from `.env`). A marker file `storage/app/.seeded` stops it running again.
+9. `optimize:clear`, then `config:cache`, `route:cache`, `view:cache`.
 
-## 4. First-run checklist (Admin dashboard)
+It is safe to run repeatedly. Do **not** import `DemoSeeder` content on the live site (it adds clearly-marked *sample* projects).
 
-The site ships with R Square Construction's real details (phone, email, location, services, copy) as defaults. Everything below is editable without touching code.
+## 4. If a deploy fails
 
-- **Settings**: company name, tagline, logo (PNG/JPG/WebP; the built-in roof-and-R mark is used until you upload one), email, phone, WhatsApp, address, social links, SEO.
-- **Website Content**: tabs for Home, About, Services & Projects, Why Choose Us, Contact & Quote, Careers, Footer and Images. Clear a field to restore its default wording.
-- **Services / Projects / Gallery / Highlights / Statistics / Testimonials**: add real content. Statistics stay hidden until you enter real figures and tick *Show*. Only add genuine, approved testimonials.
-- **Job Openings**: post roles for the Careers page. With none published, visitors are invited to send a general application.
-- **Inbox**: *Quote Requests*, *Messages* and *Job Applications* (resumes download through the dashboard only). New items show a badge in the sidebar.
-- **Staff Accounts** (admins only): add editors/admins.
-- Send a test message, quote and job application to confirm emails arrive (`storage/logs/laravel.log` shows failures).
+cPanel shows a red "deployment failed" notice. Open **File Manager** > `rsquare-deploy.log` (home folder) and look at the
+last `ERROR:` line. The script stops with a plain-English message for each common cause:
 
-## 5. Troubleshooting
-
-| Symptom | Fix |
+| Message / symptom | Fix |
 | --- | --- |
-| *Deploy HEAD Commit* is greyed out | The checkout has uncommitted changes, or `.cpanel.yml` is not committed. Don't edit tracked files on the server. `.env` and `storage/` are ignored and safe. |
-| `PHP 8.3 or newer was not found` | Select PHP 8.3+ in *MultiPHP Manager*, or set `PHP_BIN` in `~/.rsquare-deploy.env`. |
-| `Composer not found` | Install Composer in the cPanel terminal, or set `COMPOSER_BIN`. |
-| `.env is missing` / `APP_KEY is empty` | Complete step 4 of the setup. |
-| Blank page / HTTP 500 | Check `repositories/rsquare/storage/logs/laravel.log`; confirm `storage/` and `bootstrap/cache/` are writable. |
-| Uploaded images don't show | Your host blocks symlinks. In `.env` set `PUBLIC_DISK_ROOT=/home/cpaneluser/public_html/storage` and `PUBLIC_DISK_URL=https://your-domain.com/storage`, then deploy. |
-| Emails don't arrive | Check `MAIL_*` in `.env`. Submissions are always saved, so nothing is lost; the dashboard shows whether each notification was sent. |
+| *Deploy HEAD Commit* is greyed out | The server checkout has uncommitted changes. Never edit tracked files on the server (`.env`, `storage/` and `rsquare-deploy.log` are ignored and safe). Use *Update from Remote* first. |
+| `PHP 8.3 or newer was not found` | Select PHP 8.3+ in *MultiPHP Manager*, or add `PHP_BIN=/opt/cpanel/ea-php84/root/usr/bin/php` to `~/.rsquare-deploy.env`. |
+| `PHP extension 'xyz' is not enabled` (warning) | Tick it in *Select PHP Version* > Extensions. |
+| `.env is missing` / `APP_KEY is empty` | Finish step 4 above. |
+| `Composer is not available and vendor/ is missing` | The host blocks outbound internet, so Composer cannot be downloaded. Ask support to install Composer, or run `composer install --no-dev` locally and upload the `vendor/` folder into `repositories/rsquare` with File Manager (zip it first, then *Extract*). |
+| `Database migration failed` | Check `DB_*` in `.env`; the user needs *All Privileges* on the database. |
+| Blank page / HTTP 500 after deploy | Open `repositories/rsquare/storage/logs/laravel.log`. Usually a wrong `.env` value. |
+| Uploaded images don't show | The host blocks symlinks: add `PUBLIC_DISK_ROOT=/home/cpaneluser/public_html/storage` and `PUBLIC_DISK_URL=https://your-domain.com/storage` to `.env`, deploy again. |
+| Emails don't arrive | Check `MAIL_*` in `.env`. Submissions are always saved first, nothing is lost; the dashboard shows whether each notification was sent. |
 
-## 6. Notes
+## 5. Alternative: importing the database with phpMyAdmin
 
-- **Email:** submissions are saved to MySQL first. If SMTP fails the visitor still sees success and the failure is logged.
-- **Private files:** quote documents and job-application resumes live in `storage/app/private` (never web-accessible) and download only for signed-in staff.
-- **Roles:** `admin` can do everything; `editor` can create/edit content and handle inquiries but cannot delete records or change Settings and accounts.
-- **Sitemap & robots** are served dynamically at `/sitemap.xml` and `/robots.txt`.
-- **Cron / queues** are not required (`QUEUE_CONNECTION=sync`).
-- **No Git on the host?** Build locally (`composer install --no-dev -o` and `npm run build`), upload the project outside `public_html`, copy `public/` into `public_html`, and replace `index.php` with `deploy/public_html/index.php` after setting its `__RSQUARE_APP_PATH__`. Then run the artisan steps from section 3 by hand.
+Not required (the deploy migrates and seeds for you), but if you prefer, `database/sql/rsquare_construction.sql` creates all
+tables with the starter content and the admin account from your local `.env`. Import it into the **empty** database
+(phpMyAdmin > database > Import) *before* the first deploy. The deploy then sees every migration as already run.
+The file contains the admin password hash, so it is git-ignored; copy it to the server with File Manager if needed.
+
+## 6. First-run checklist (Admin dashboard)
+
+- **Settings**: company name, tagline, logo and site icon, email, phone, WhatsApp, address, social links, SEO.
+- **Pages**: every page in menu order. *Unpublish* hides a page from the menu, footer and sitemap (visitors get a 404);
+  *Add new page* creates a custom page at `/your-slug`. Built-in pages can be relabelled and reordered but not deleted.
+- **Website Content**: tabs for Home, About, Services & Projects, Why Choose Us, Contact & Quote, Careers, Footer and Images.
+- **Services / Projects / Gallery / Highlights / Statistics / Testimonials**: add real content. Statistics stay hidden until
+  you enter real figures and tick *Show*. Only add genuine, approved testimonials.
+- **Job Openings**: post roles for the Careers page. **Inbox**: quotes, messages and job applications.
+- **Staff Accounts** (admins only): add editors/admins.
+- Send a test message, quote and job application to confirm emails arrive.
+
+## 7. Notes
+
+- Quote documents and resumes are stored in `storage/app/private` (never web-accessible) and download only for signed-in staff.
+- Roles: `admin` can do everything; `editor` can create/edit content and handle inquiries but cannot delete records or change Settings and accounts.
+- `/sitemap.xml` and `/robots.txt` are generated dynamically. No cron jobs or queues are required.

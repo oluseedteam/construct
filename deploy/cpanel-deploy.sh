@@ -1,23 +1,29 @@
 #!/usr/bin/env bash
 #
-# R Square Construction: cPanel Git deployment.
-# Run by .cpanel.yml from the repository root (the checkout cPanel keeps under ~/repositories/...).
+# R Square Construction: cPanel Git deployment. NO TERMINAL NEEDED.
+# cPanel runs this from .cpanel.yml when you click "Deploy HEAD Commit" in Git Version Control.
 #
 # The repository checkout IS the application. Only public/ is published into public_html,
 # so source code, vendor/ and .env are never web-accessible.
 #
+# Everything is logged to ~/rsquare-deploy.log (open it in cPanel > File Manager if a deploy fails).
+#
 # Optional per-server overrides live OUTSIDE the repo in ~/.rsquare-deploy.env, e.g.:
 #   PUBLIC_PATH=/home/cpaneluser/public_html        # default: $HOME/public_html (use a sub-folder for add-on domains)
 #   PHP_BIN=/opt/cpanel/ea-php84/root/usr/bin/php   # default: auto-detected, must be PHP 8.3+
-#   COMPOSER_BIN=/opt/cpanel/composer/bin/composer  # default: auto-detected
+#   COMPOSER_BIN=/opt/cpanel/composer/bin/composer  # default: auto-detected, downloaded if missing
 #
 # Safe to re-run. It never touches .env, storage/ data or uploaded files.
 
 set -euo pipefail
 
+LOG="$HOME/rsquare-deploy.log"
+{ printf '\n\n===== Deploy started %s =====\n' "$(date '+%Y-%m-%d %H:%M:%S')"; } >> "$LOG" 2>/dev/null || LOG=/dev/null
+exec > >(tee -a "$LOG") 2>&1
+
 say()  { printf '\n==> %s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
-die()  { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
+die()  { printf '\nERROR: %s\nSee %s for details.\n' "$*" "$LOG" >&2; exit 1; }
 
 APP_PATH="$(pwd)"
 [ -f "$APP_PATH/artisan" ] || die "Run this from the repository root (artisan not found in $APP_PATH)."
@@ -42,19 +48,23 @@ find_php() {
     done
     return 1
 }
-PHP_BIN="$(find_php)" || die "PHP 8.3 or newer was not found. In cPanel > MultiPHP Manager select PHP 8.3+, or set PHP_BIN in ~/.rsquare-deploy.env."
+PHP_BIN="$(find_php)" || die "PHP 8.3 or newer was not found. In cPanel > MultiPHP Manager select PHP 8.3 or newer for this domain, then deploy again."
 echo "PHP: $PHP_BIN ($("$PHP_BIN" -r 'echo PHP_VERSION;'))"
 
+for ext in pdo_mysql mbstring openssl fileinfo gd curl xml zip tokenizer ctype; do
+    "$PHP_BIN" -m 2>/dev/null | grep -qi "^${ext}$" || warn "PHP extension '$ext' is not enabled (cPanel > Select PHP Version / PHP Extensions)."
+done
+
 # ---------------------------------------------------------------- .env sanity (never created or changed by this script)
-[ -f .env ] || die ".env is missing in $APP_PATH. Copy .env.example to .env and fill it in (see DEPLOYMENT.md), then deploy again."
-grep -qE '^APP_KEY=base64:.+' .env || die "APP_KEY is empty in .env. Run: $PHP_BIN artisan key:generate"
+[ -f .env ] || die ".env is missing in $APP_PATH. In File Manager copy .env.example to .env and fill it in (see DEPLOYMENT.md), then deploy again."
+grep -qE '^APP_KEY=base64:.+' .env || die "APP_KEY is empty in .env. Generate one locally with 'php artisan key:generate --show' and paste it into .env."
 grep -qE '^APP_DEBUG=true' .env && warn "APP_DEBUG=true in .env. Set APP_DEBUG=false on a live site."
 
-# ---------------------------------------------------------------- Composer dependencies
+# ---------------------------------------------------------------- Composer (found, or downloaded automatically)
 run_composer() {
     local bin="$1"; shift
     # A phar/PHP script must run with the right PHP; its shebang may point at an older default php.
-    if head -n 1 "$bin" 2>/dev/null | grep -q 'php'; then
+    if head -c 64 "$bin" 2>/dev/null | grep -q 'php'; then
         "$PHP_BIN" "$bin" "$@"
     else
         "$bin" "$@"
@@ -62,22 +72,48 @@ run_composer() {
 }
 find_composer() {
     local candidate
-    for candidate in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer "$(command -v composer || true)" "$HOME/composer.phar" "$HOME/bin/composer"; do
+    for candidate in "${COMPOSER_BIN:-}" /opt/cpanel/composer/bin/composer "$(command -v composer || true)" "$HOME/bin/composer.phar" "$HOME/composer.phar"; do
         [ -n "$candidate" ] && [ -f "$candidate" ] && { echo "$candidate"; return 0; }
     done
     return 1
 }
+download_composer() {
+    # Only the final path may go to stdout: the caller captures it with $(...). Messages go to stderr (still logged).
+    say "Composer not found on this server: downloading it (one-time)" >&2
+    mkdir -p "$HOME/bin"
+    local setup="$HOME/bin/composer-setup.php"
+    "$PHP_BIN" -r "copy('https://getcomposer.org/installer', '$setup');" || return 1
+    local expected actual
+    expected="$("$PHP_BIN" -r "echo trim(file_get_contents('https://composer.github.io/installer.sig'));")" || return 1
+    actual="$("$PHP_BIN" -r "echo hash_file('sha384', '$setup');")"
+    if [ "$expected" != "$actual" ]; then
+        rm -f "$setup"
+        warn "Composer installer checksum did not match; download aborted."
+        return 1
+    fi
+    "$PHP_BIN" "$setup" --quiet --install-dir="$HOME/bin" --filename=composer.phar || return 1
+    rm -f "$setup"
+    echo "$HOME/bin/composer.phar"
+}
+
+export COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.composer}"
+export COMPOSER_MEMORY_LIMIT=-1
+export COMPOSER_ALLOW_SUPERUSER=1
 
 if [ "${SKIP_COMPOSER:-0}" = "1" ]; then
     say "Skipping Composer (SKIP_COMPOSER=1)"
-elif COMPOSER="$(find_composer)"; then
-    say "Installing PHP dependencies"
-    export COMPOSER_HOME="${COMPOSER_HOME:-$HOME/.composer}"
-    run_composer "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress
-elif [ -f vendor/autoload.php ]; then
-    warn "Composer not found; keeping the existing vendor/ folder."
 else
-    die "Composer not found and vendor/ is missing. Install Composer (cPanel Terminal: https://getcomposer.org) or set COMPOSER_BIN in ~/.rsquare-deploy.env."
+    COMPOSER="$(find_composer || true)"
+    [ -n "$COMPOSER" ] || COMPOSER="$(download_composer || true)"
+    if [ -n "$COMPOSER" ]; then
+        say "Installing PHP dependencies with $COMPOSER"
+        run_composer "$COMPOSER" install --no-dev --optimize-autoloader --no-interaction --no-progress --prefer-dist \
+            || die "composer install failed. Check the output above (usually a missing PHP extension or no outbound internet access)."
+    elif [ -f vendor/autoload.php ]; then
+        warn "Composer could not be found or downloaded; keeping the existing vendor/ folder."
+    else
+        die "Composer is not available and vendor/ is missing. Ask your host to enable outbound HTTPS (so Composer can be downloaded) or to install Composer, then deploy again."
+    fi
 fi
 [ -f vendor/autoload.php ] || die "vendor/autoload.php is missing after install."
 
@@ -110,9 +146,9 @@ fi
 
 # ---------------------------------------------------------------- database + caches
 say "Running database migrations"
-"$PHP_BIN" artisan migrate --force
+"$PHP_BIN" artisan migrate --force || die "Database migration failed. Check DB_DATABASE / DB_USERNAME / DB_PASSWORD in .env and that the user has ALL PRIVILEGES on the database."
 
-# One-time starter data (categories, services, highlights, first admin from ADMIN_* in .env). Idempotent; never repeated.
+# One-time starter data (categories, services, highlights, pages, first admin from ADMIN_* in .env). Idempotent; never repeated.
 if [ ! -f storage/app/.seeded ]; then
     say "First deploy: seeding starter data"
     "$PHP_BIN" artisan db:seed --force
@@ -125,4 +161,4 @@ say "Refreshing caches"
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 
-say "Deploy finished."
+say "Deploy finished successfully."
