@@ -105,7 +105,7 @@ class BrandingTest extends TestCase
         $this->get('/about')->assertSee($tag, false);
     }
 
-    public function test_logo_mark_uses_brand_orange_not_gold(): void
+    public function test_logo_mark_roof_is_orange_not_gold(): void
     {
         $im = imagecreatefrompng(public_path('images/logo-mark.png'));
         $orange = 0;
@@ -117,9 +117,15 @@ class BrandingTest extends TestCase
                     continue;
                 }
                 [$r, $g, $b] = [($c >> 16) & 255, ($c >> 8) & 255, $c & 255];
-                if ($r > 200 && $g >= 70 && $g <= 130 && $b < 60) {
+                $max = max($r, $g, $b);
+                $min = min($r, $g, $b);
+                if ($max - $min < 60 || $max !== $r) {
+                    continue; // grey/navy/white or not a warm colour
+                }
+                $hue = 60 * fmod(($g - $b) / ($max - $min), 6); // red is 0°, yellow 60°
+                if ($hue >= 8 && $hue <= 34) {
                     $orange++;
-                } elseif ($r > 180 && $g > 140 && $b < 90) {
+                } elseif ($hue >= 38 && $hue <= 65) {
                     $gold++;
                 }
             }
