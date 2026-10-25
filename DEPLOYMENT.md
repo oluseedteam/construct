@@ -43,6 +43,49 @@ host doesn't have it), publishes the site, runs database migrations, seeds the s
 6. Open `https://your-domain.com`. Then sign in at `/admin`, change your password (your name, top right > Profile) and
    delete the `ADMIN_PASSWORD` line from `.env`.
 
+## 1b. Same setup using the cPanel Terminal (faster, if you have it)
+
+```bash
+# 0) use PHP 8.3+ for this session (cPanel's default `php` may be older)
+export PATH="$(ls -d /opt/cpanel/ea-php8[3-9]/root/usr/bin 2>/dev/null | sort | tail -1):$PATH"
+php -v                                   # must show PHP 8.3 or newer
+
+# 1) get the code
+mkdir -p ~/repositories && cd ~/repositories
+git clone https://github.com/oluseedteam/construct.git rsquare
+cd rsquare
+
+# 2) configuration
+cp .env.example .env
+php artisan key:generate                 # fills APP_KEY in .env
+nano .env                                # set APP_URL, APP_DEBUG=false, DB_*, MAIL_*, ADMIN_EMAIL, ADMIN_PASSWORD  (Ctrl+O, Enter, Ctrl+X)
+
+# 2b) only for an add-on domain / sub-domain: tell the deploy where its document root is
+echo 'PUBLIC_PATH=/home/'"$USER"'/your-domain.com' > ~/.rsquare-deploy.env
+
+# 3) deploy (installs dependencies, publishes public_html, migrates, seeds once, caches)
+bash deploy/cpanel-deploy.sh
+```
+
+Then open the site, sign in at `/admin`, change your password and remove the `ADMIN_PASSWORD` line from `.env`.
+
+Publishing later versions from the terminal:
+
+```bash
+cd ~/repositories/rsquare && git pull && bash deploy/cpanel-deploy.sh
+```
+
+(or keep using *Update from Remote* + *Deploy HEAD Commit* in Git Version Control; both run the same script.)
+
+Handy commands:
+
+```bash
+tail -50 ~/rsquare-deploy.log                       # what the last deploy did
+tail -50 storage/logs/laravel.log                   # application errors
+php artisan admin:create someone@example.com        # add another staff account
+php artisan optimize:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache
+```
+
 ## 2. Publishing changes afterwards
 
 ```bash
