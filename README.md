@@ -23,7 +23,7 @@ Company website and admin dashboard for **R Square Construction** (Ontario, Cana
 
 ## Local setup
 
-Requires PHP 8.3+, Composer, Node 20+ and MySQL.
+Requires PHP 8.4+, Composer, Node 20+ and MySQL.
 
 ```bash
 composer install
@@ -49,7 +49,7 @@ Feature tests run on in-memory SQLite and cover the public pages, forms and emai
 
 ## Deploying to cPanel with Git
 
-See [DEPLOYMENT.md](DEPLOYMENT.md). The repository contains a `.cpanel.yml` that runs `deploy/cpanel-deploy.sh` on *Deploy HEAD Commit*. `public/build` is committed on purpose because shared hosting has no Node; run `npm run build` before committing CSS/JS changes.
+See [DEPLOYMENT.md](DEPLOYMENT.md). The repository contains a `.cpanel.yml` that runs `deploy/cpanel-deploy.sh` on *Deploy HEAD Commit*. `public/build` and `vendor/` are committed on purpose so shared hosting needs neither Node nor Composer; run `npm run build` before committing CSS/JS changes and commit `vendor/` after a `composer update`.
 
 ## Content notes
 

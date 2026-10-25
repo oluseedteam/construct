@@ -2,8 +2,9 @@
 
 Everything on the server happens through the cPanel web interface. You never need SSH or the Terminal feature:
 **Git Version Control** pulls the code and runs [`deploy/cpanel-deploy.sh`](deploy/cpanel-deploy.sh) (via `.cpanel.yml`)
-when you click **Deploy HEAD Commit**. That script installs Composer dependencies (downloading Composer itself if the
-host doesn't have it), publishes the site, runs database migrations, seeds the starter data once and rebuilds caches.
+when you click **Deploy HEAD Commit**. The repository already contains the `vendor/` folder, so the deploy needs **no
+Composer** and normally finishes in **seconds**: it publishes the site, runs database migrations, seeds the starter data
+once and rebuilds caches.
 
 ```
 /home/cpaneluser/
@@ -14,7 +15,7 @@ host doesn't have it), publishes the site, runs database migrations, seeds the s
 
 ## 1. One-time setup (about 15 minutes, all in cPanel)
 
-1. **PHP version** — cPanel > *MultiPHP Manager* (or *Select PHP Version*): choose **PHP 8.3 or newer** for your domain.
+1. **PHP version** — cPanel > *MultiPHP Manager* (or *Select PHP Version*): choose **PHP 8.4 or newer** for your domain (the dependencies require 8.4.1+).
    Under PHP extensions make sure these are ticked: `pdo_mysql, mbstring, openssl, fileinfo, gd, curl, xml, zip, tokenizer, ctype`.
 2. **Database** — cPanel > *MySQL Databases*: create a database, create a user, then *Add User To Database* with **All Privileges**.
    Note the full names (cPanel prefixes them, e.g. `cpaneluser_rsquare`).
@@ -39,7 +40,7 @@ host doesn't have it), publishes the site, runs database migrations, seeds the s
    - *(Only for an add-on domain or sub-domain)* also create `/home/cpaneluser/.rsquare-deploy.env` containing
      `PUBLIC_PATH=/home/cpaneluser/your-domain.com` (the domain's document root).
 5. **Deploy** — cPanel > *Git Version Control* > *Manage* (next to the repo) > *Pull or Deploy* tab > **Deploy HEAD Commit**.
-   The first deploy takes a few minutes (Composer downloads the dependencies).
+   It normally completes in under a minute.
 6. Open `https://your-domain.com`. Then sign in at `/admin`, change your password (your name, top right > Profile) and
    delete the `ADMIN_PASSWORD` line from `.env`.
 
@@ -48,7 +49,7 @@ host doesn't have it), publishes the site, runs database migrations, seeds the s
 ```bash
 # 0) use PHP 8.3+ for this session (cPanel's default `php` may be older)
 export PATH="$(ls -d /opt/cpanel/ea-php8[3-9]/root/usr/bin 2>/dev/null | sort | tail -1):$PATH"
-php -v                                   # must show PHP 8.3 or newer
+php -v                                   # must show PHP 8.4 or newer
 
 # 1) get the code
 mkdir -p ~/repositories && cd ~/repositories
@@ -103,8 +104,8 @@ That's it. Uploads, `.env` and the database are never touched by a deploy.
 ## 3. What a deploy does (deploy/cpanel-deploy.sh)
 
 1. Logs everything to `~/rsquare-deploy.log`.
-2. Finds PHP 8.3+ (cPanel's `/opt/cpanel/ea-php8x` builds) and checks `.env` and `APP_KEY` exist.
-3. Finds Composer, or **downloads it** to `~/bin/composer.phar` (verifying the official checksum), then `composer install --no-dev`.
+2. Picks the newest cPanel PHP build (`/opt/cpanel/ea-php8x`) that satisfies `vendor/`'s platform check (PHP 8.4+) and checks `.env` and `APP_KEY` exist.
+3. Uses the committed `vendor/` folder: **no Composer, no downloads**. (`RUN_COMPOSER=1` in `~/.rsquare-deploy.env` forces a `composer install`, downloading Composer if needed.)
 4. Creates the `storage/` folders and makes them writable.
 5. Replaces `public_html/build`, copies the rest of `public/`, generates `public_html/index.php` pointing at the checkout.
    Other files in `public_html` (e.g. `cgi-bin`, `.well-known`) and uploaded images are left alone.
@@ -124,10 +125,10 @@ last `ERROR:` line. The script stops with a plain-English message for each commo
 | Message / symptom | Fix |
 | --- | --- |
 | *Deploy HEAD Commit* is greyed out | The server checkout has uncommitted changes. Never edit tracked files on the server (`.env`, `storage/` and `rsquare-deploy.log` are ignored and safe). Use *Update from Remote* first. |
-| `PHP 8.3 or newer was not found` | Select PHP 8.3+ in *MultiPHP Manager*, or add `PHP_BIN=/opt/cpanel/ea-php84/root/usr/bin/php` to `~/.rsquare-deploy.env`. |
+| `No suitable PHP found` | Select PHP 8.4+ in *MultiPHP Manager*, or add `PHP_BIN=/opt/cpanel/ea-php84/root/usr/bin/php` to `~/.rsquare-deploy.env`. |
 | `PHP extension 'xyz' is not enabled` (warning) | Tick it in *Select PHP Version* > Extensions. |
 | `.env is missing` / `APP_KEY is empty` | Finish step 4 above. |
-| `Composer is not available and vendor/ is missing` | The host blocks outbound internet, so Composer cannot be downloaded. Ask support to install Composer, or run `composer install --no-dev` locally and upload the `vendor/` folder into `repositories/rsquare` with File Manager (zip it first, then *Extract*). |
+| Deploy stays "in progress" for many minutes | Run `tail -f ~/rsquare-deploy.log` in Terminal to see the current step. Deploys made before `vendor/` was committed ran Composer and could take 10+ minutes; if one is stuck, `pkill -u $USER -f composer`, then *Update from Remote* and deploy again. |
 | `Database migration failed` | Check `DB_*` in `.env`; the user needs *All Privileges* on the database. |
 | Blank page / HTTP 500 after deploy | Open `repositories/rsquare/storage/logs/laravel.log`. Usually a wrong `.env` value. |
 | Uploaded images don't show | The host blocks symlinks: add `PUBLIC_DISK_ROOT=/home/cpaneluser/public_html/storage` and `PUBLIC_DISK_URL=https://your-domain.com/storage` to `.env`, deploy again. |

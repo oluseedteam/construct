@@ -23,7 +23,8 @@
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
+# NOTE: vendor/ is committed on purpose so cPanel deploys need no Composer (see DEPLOYMENT.md).
+# Run `composer install` locally as usual; commit the result.
 _ide_helper.php
 Homestead.json
 Homestead.yaml
