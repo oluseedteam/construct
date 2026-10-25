@@ -25,14 +25,11 @@ say()  { printf '\n==> %s\n' "$*"; }
 warn() { printf 'WARNING: %s\n' "$*" >&2; }
 die()  { printf '\nERROR: %s\nSee %s for details.\n' "$*" "$LOG" >&2; exit 1; }
 
-APP_PATH="$(pwd)"
-[ -f "$APP_PATH/artisan" ] || die "Run this from the repository root (artisan not found in $APP_PATH)."
+[ -f artisan ] || die "Run this from the repository root (artisan not found in $(pwd))."
 
 # shellcheck disable=SC1091
 [ -f "$HOME/.rsquare-deploy.env" ] && . "$HOME/.rsquare-deploy.env"
 PUBLIC_PATH="${PUBLIC_PATH:-$HOME/public_html}"
-
-say "Deploying $APP_PATH -> $PUBLIC_PATH"
 
 # ---------------------------------------------------------------- PHP (8.3+ required by Laravel 13)
 find_php() {
@@ -50,6 +47,10 @@ find_php() {
 }
 PHP_BIN="$(find_php)" || die "PHP 8.3 or newer was not found. In cPanel > MultiPHP Manager select PHP 8.3 or newer for this domain, then deploy again."
 echo "PHP: $PHP_BIN ($("$PHP_BIN" -r 'echo PHP_VERSION;'))"
+
+# Resolve the checkout path with PHP so the generated index.php gets exactly the path PHP itself can open.
+APP_PATH="$("$PHP_BIN" -r 'echo str_replace("\\", "/", realpath("."));')"
+say "Deploying $APP_PATH -> $PUBLIC_PATH"
 
 for ext in pdo_mysql mbstring openssl fileinfo gd curl xml zip tokenizer ctype; do
     "$PHP_BIN" -m 2>/dev/null | grep -qi "^${ext}$" || warn "PHP extension '$ext' is not enabled (cPanel > Select PHP Version / PHP Extensions)."
