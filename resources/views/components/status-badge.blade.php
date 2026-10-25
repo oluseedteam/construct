@@ -14,6 +14,7 @@
         'published' => 'bg-emerald-100 text-emerald-800',
         'draft' => 'bg-slate-200 text-slate-600',
         'hidden' => 'bg-amber-100 text-amber-800',
+        'visible' => 'bg-emerald-100 text-emerald-800',
     ];
 @endphp
 <span {{ $attributes->merge(['class' => 'badge capitalize '.($colors[$status] ?? 'bg-slate-100 text-slate-700')]) }}>{{ $status }}</span>

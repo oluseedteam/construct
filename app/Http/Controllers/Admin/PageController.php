@@ -22,10 +22,7 @@ class PageController extends Controller
     {
         $this->authorize('viewAny', Page::class);
 
-        // Self-heal: a database imported from an older SQL export has no page rows yet.
-        if (Page::where('is_builtin', true)->count() < count(Page::BUILTIN)) {
-            Page::ensureBuiltins();
-        }
+        Page::ensureBuiltinsIfMissing();
 
         return view('admin.pages.index', ['pages' => Page::ordered()->get()]);
     }
@@ -98,15 +95,15 @@ class PageController extends Controller
         $this->authorize('update', $page);
 
         if ($page->isLocked()) {
-            return back()->with('error', 'The homepage cannot be unpublished.');
+            return back()->with('error', 'The homepage cannot be hidden.');
         }
 
         $page->update(['is_published' => ! $page->is_published]);
         Cache::forget('sitemap.xml');
 
         return back()->with('status', $page->is_published
-            ? "\"{$page->title}\" is now published and visible on the website."
-            : "\"{$page->title}\" is unpublished: it is hidden from the menu and returns a 404 page.");
+            ? "\"{$page->title}\" is now visible on the website again."
+            : "\"{$page->title}\" is hidden: it is off the menu and footer and visitors get a \"not found\" page.");
     }
 
     public function destroy(Page $page): RedirectResponse
@@ -114,7 +111,7 @@ class PageController extends Controller
         $this->authorize('delete', $page);
 
         if ($page->is_builtin) {
-            return back()->with('error', 'Built-in pages cannot be deleted. Unpublish it to hide it instead.');
+            return back()->with('error', 'Built-in pages cannot be deleted. Use "Hide page" instead.');
         }
 
         $page->delete();

@@ -80,6 +80,14 @@ class Page extends Model
      * to them) are left alone. Used by the seeder and by Admin > Pages, so a database that was
      * imported from an older SQL file still gets its pages list.
      */
+    /** Self-heal: a database imported from an older SQL export has no page rows yet. */
+    public static function ensureBuiltinsIfMissing(): void
+    {
+        if (static::where('is_builtin', true)->count() < count(self::BUILTIN)) {
+            static::ensureBuiltins();
+        }
+    }
+
     public static function ensureBuiltins(): void
     {
         foreach (array_keys(self::BUILTIN) as $i => $key) {

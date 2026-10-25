@@ -244,6 +244,30 @@ class PagesTest extends TestCase
         $this->assertFalse(Page::firstWhere('key', 'gallery')->is_published);
     }
 
+    public function test_dashboard_has_one_click_hide_and_show_buttons_for_every_page(): void
+    {
+        $this->seed(DatabaseSeeder::class);
+        $this->actingAs($this->admin());
+
+        $html = $this->get('/admin')->assertOk()->assertSee('Page visibility')->assertSee('Always visible')->getContent();
+        $gallery = Page::firstWhere('key', 'gallery');
+        $this->assertStringContainsString(route('admin.pages.toggle', $gallery), $html);
+        $this->assertSame(count(Page::BUILTIN) - 1, substr_count($html, '/toggle"'));   // every page except Home
+
+        // hide Gallery straight from the dashboard
+        $this->from('/admin')->patch(route('admin.pages.toggle', $gallery))->assertRedirect('/admin');
+        $this->get('/gallery')->assertNotFound();
+        $this->get('/admin')->assertSee('Show '.$gallery->title, false);
+
+        // the Pages screen uses the same wording
+        $this->get('/admin/pages')->assertSee('Show page')->assertSee('Hide page')->assertSee('>hidden</span>', false)->assertSee('>visible</span>', false);
+
+        // an unseeded database still gets its page list on the dashboard
+        Page::query()->delete();
+        $this->get('/admin')->assertOk()->assertSee('Project Gallery');
+        $this->assertSame(count(Page::BUILTIN), Page::count());
+    }
+
     public function test_admin_pages_screens_render(): void
     {
         $this->seed(DatabaseSeeder::class);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContactMessage;
 use App\Models\JobApplication;
 use App\Models\JobOpening;
+use App\Models\Page;
 use App\Models\Project;
 use App\Models\QuoteRequest;
 use App\Models\Service;
@@ -56,6 +57,15 @@ class DashboardController extends Controller
                 ['Open Job Openings', JobOpening::open()->count(), 'handshake', route('admin.jobs.index')],
             ],
             'recent' => $recent,
+            'pages' => $this->pages(),
         ]);
+    }
+
+    /** Every page with its visibility, for the one-click Hide/Show buttons on the dashboard. */
+    private function pages()
+    {
+        Page::ensureBuiltinsIfMissing();
+
+        return Page::ordered()->get();
     }
 }
