@@ -42,6 +42,7 @@
                 <x-field name="linkedin" type="url" label="LinkedIn" :value="setting('linkedin')" placeholder="https://linkedin.com/company/…" />
                 <x-field name="x_twitter" type="url" label="X (Twitter)" :value="setting('x_twitter')" placeholder="https://x.com/…" />
                 <x-field name="youtube" type="url" label="YouTube" :value="setting('youtube')" placeholder="https://youtube.com/@…" />
+                <x-field name="tiktok" type="url" label="TikTok" :value="setting('tiktok')" placeholder="https://tiktok.com/@…" />
             </div>
         </section>
 

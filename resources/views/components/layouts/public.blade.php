@@ -12,7 +12,7 @@
     $metaDescription = $description ?: setting('seo_description');
     $ogImage = $image ?: (setting('seo_image') ? media_url(setting('seo_image')) : asset('images/og-image.jpg'));
     $navServices = \Illuminate\Support\Facades\Cache::remember(\App\Models\Service::NAV_CACHE_KEY, 600, fn () => \App\Models\Service::published()->ordered()->get(['name', 'slug'])->map(fn ($s) => ['name' => $s->name, 'slug' => $s->slug])->all());
-    $socials = collect(['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => 'LinkedIn', 'x_twitter' => 'X', 'youtube' => 'YouTube'])
+    $socials = collect(['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => 'LinkedIn', 'x_twitter' => 'X', 'youtube' => 'YouTube', 'tiktok' => 'TikTok'])
         ->filter(fn ($label, $key) => setting($key));
 @endphp
 <!DOCTYPE html>

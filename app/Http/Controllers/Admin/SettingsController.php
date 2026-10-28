@@ -13,7 +13,7 @@ class SettingsController extends Controller
 {
     private const TEXT_KEYS = [
         'company_name', 'tagline', 'email', 'phone', 'whatsapp', 'address',
-        'facebook', 'instagram', 'linkedin', 'x_twitter', 'youtube',
+        'facebook', 'instagram', 'linkedin', 'x_twitter', 'youtube', 'tiktok',
         'seo_title', 'seo_description',
     ];
 
@@ -40,6 +40,7 @@ class SettingsController extends Controller
             'linkedin' => ['nullable', 'url:http,https', 'max:255'],
             'x_twitter' => ['nullable', 'url:http,https', 'max:255'],
             'youtube' => ['nullable', 'url:http,https', 'max:255'],
+            'tiktok' => ['nullable', 'url:http,https', 'max:255'],
             'seo_title' => ['nullable', 'string', 'max:70'],
             'seo_description' => ['nullable', 'string', 'max:200'],
             // SVG is intentionally not accepted: it can carry scripts.

@@ -253,18 +253,26 @@ class AdminManagementTest extends TestCase
 
     public function test_settings_update_company_details_logo_and_seo(): void
     {
+        $this->get('/admin/settings')
+            ->assertOk()
+            ->assertSee('name="tiktok"', false);
+
         $this->put('/admin/settings', [
             'company_name' => 'R-Square Group', 'email' => 'hello@rsquare.example', 'phone' => '+234 800 000 0000',
             'whatsapp' => '+2348000000000', 'address' => '1 Builder Way', 'facebook' => 'https://facebook.com/rsquare',
+            'tiktok' => 'https://tiktok.com/@rsquare',
             'seo_title' => 'Custom SEO Title', 'logo' => UploadedFile::fake()->image('logo.png', 400, 120),
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('R-Square Group', SiteSetting::where('key', 'company_name')->value('value'));
+        $this->assertSame('https://tiktok.com/@rsquare', SiteSetting::where('key', 'tiktok')->value('value'));
 
         $this->get('/')
             ->assertSee('hello@rsquare.example')
             ->assertSee('1 Builder Way')
             ->assertSee('https://facebook.com/rsquare', false)
+            ->assertSee('https://tiktok.com/@rsquare', false)
+            ->assertSee('R-Square Group on TikTok')
             ->assertSee('https://wa.me/2348000000000', false)
             ->assertSee('<title>Custom SEO Title</title>', false)
             ->assertSee(SiteSetting::where('key', 'logo')->value('value'), false);
@@ -273,7 +281,7 @@ class AdminManagementTest extends TestCase
     public function test_settings_reject_svg_logos_and_javascript_urls(): void
     {
         $this->put('/admin/settings', ['company_name' => 'X', 'logo' => UploadedFile::fake()->create('logo.svg', 4, 'image/svg+xml')])->assertSessionHasErrors('logo');
-        $this->put('/admin/settings', ['company_name' => 'X', 'facebook' => 'javascript:alert(1)'])->assertSessionHasErrors('facebook');
+        $this->put('/admin/settings', ['company_name' => 'X', 'tiktok' => 'javascript:alert(1)'])->assertSessionHasErrors('tiktok');
     }
 
     public function test_dashboard_numbers_come_from_the_database(): void

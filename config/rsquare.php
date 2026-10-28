@@ -28,6 +28,7 @@ return [
         'linkedin' => '',
         'x_twitter' => '',
         'youtube' => '',
+        'tiktok' => '',
         'seo_title' => 'R Square Construction | Building Better Spaces for a Brighter Tomorrow',
         'seo_description' => 'R Square Construction delivers quality construction and renovation services in Ontario, Canada, tailored to your needs, from concept to completion.',
         'seo_image' => '',
